@@ -354,6 +354,7 @@
 "Assets/Scripts/CameraController.cs"
 "Assets/Scripts/FirstPersonCharacterMovement.cs"
 "Assets/Scripts/GameManager.cs"
+"Assets/Scripts/InputManager.cs"
 "Assets/Scripts/ObjectProjection.cs"
 "Assets/Scripts/PickUpPlaceBlock.cs"
 "Assets/Scripts/TwoDCharacterMovement.cs"

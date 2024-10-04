@@ -8,6 +8,7 @@ public class Alan : MonoBehaviour
     private TwoDCharacterMovement twoD;
     public Canvas crossBar;
 
+
     // Start is called before the first frame update
     void Start()
     {
@@ -16,14 +17,10 @@ public class Alan : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    public void ToggleControllers()
     {
-        if (Input.GetKeyDown(KeyCode.F)) // Forward movement
-        {
-            fp.enabled = !fp.enabled;
-            twoD.enabled = !twoD.enabled;
-            crossBar.enabled = !crossBar.enabled;
-            
-        }
+        fp.enabled = !fp.enabled;
+        twoD.enabled = !twoD.enabled;
+        crossBar.enabled = !crossBar.enabled;
     }
 }

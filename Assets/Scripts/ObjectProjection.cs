@@ -1,88 +1,119 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Unity.Collections;
 
 public class ObjectProjection : MonoBehaviour
 {
+    //for current Mesh
     private MeshFilter meshFilter;
     private Mesh mesh;
     private Vector3[] vertices;
-    private int[] triangles;
-    private Vector3[] normals;
-    private Vector2[] uv;
+    private BoxCollider boxCollider;
+    private MeshRenderer meshRenderer;
 
+    //for spawning new mesh
+    private GameObject projectedMeshObject;
     private Mesh projectedMesh;
-
+    private PolygonCollider2D polygonCollider;
     public Material projectedMaterial;
 
-    void Start()
+    private float fixedZ = 3.25f;
+
+    void Awake()
     {
         // Get the Mesh Filter attached to this GameObject
         meshFilter = GetComponent<MeshFilter>();
+        boxCollider = GetComponent<BoxCollider>();
+        meshRenderer = GetComponent<MeshRenderer>();
+    }
 
-        // Ensure the GameObject has a MeshFilter
+    private void GetMeshData()
+    {
         if (meshFilter != null)
         {
-            // Access the Mesh from the Mesh Filter
             mesh = meshFilter.mesh;
-
-            // Now you can access the mesh data
-            vertices = mesh.vertices;        // Get the vertices
-            triangles = mesh.triangles;          // Get the triangle indices
-            normals = mesh.normals;          // Get the normals
-            uv = mesh.uv;                    // Get the UV coordinates
-
+            vertices = mesh.vertices;   
+            // Convert local verticies to world
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] = transform.TransformPoint(vertices[i]);
+                // Debug.Log("Vertex " + i + " world position: " + vertices[i]);
+            }
         }
         else
         {
             Debug.LogError("No MeshFilter found on the GameObject!");
         }
     }
-
-    void Update()
+    
+    public void UpdatePerception()
     {
-        if (Input.GetKeyDown(KeyCode.F)) // Forward movement
-        {
-            UpdatePerception();
-        }
-    }
-
-
-    // Example: Modify the mesh (move vertices, recalculate bounds)
-
-    void UpdatePerception()
-    {
-        Vector3[] transformedVertices = ProjectVerticesTo2D(vertices);
-        projectedMesh = Create2DMesh(transformedVertices, mesh.triangles);
-
-        // Create a GameObject to display the new mesh
-        GameObject projectedMeshObject = new GameObject("ProjectedMesh");
+        GetMeshData();
+        Vector3[] projectedVerticies = ProjectVerticesTo2D(vertices);
+        
+        // Check if currMesh is null, if not destory currMesh (gameobject)
+        DestoryProjectedMesh();
+        projectedMeshObject = new GameObject("ProjectedMesh");
+        
+        projectedMesh = Create2DMesh(projectedVerticies, mesh.triangles);
+        polygonCollider = projectedMeshObject.AddComponent<PolygonCollider2D>();
+        AddPolygonColliderFromProjectedVertices(projectedVerticies,polygonCollider);
+        
         projectedMeshObject.AddComponent<MeshFilter>().mesh = projectedMesh;
         projectedMeshObject.AddComponent<MeshRenderer>().material = projectedMaterial;
+    }
 
-        // meshFilter.mesh.vertices = vertices;
-        // // After modifying, assign the updated vertices back to the mesh            
-        // // Recalculate bounds and normals if you modify the mesh
-        // meshFilter.mesh.RecalculateBounds();
-        // meshFilter.mesh.RecalculateNormals();
+    public void DestoryProjectedMesh()
+    {
+        if (projectedMeshObject != null)
+        {
+            Destroy(projectedMeshObject);
+        }
     }
     
-    Vector3[] ProjectVerticesTo2D(Vector3[] vertices)
+    Vector3[] ProjectVerticesTo2D(Vector3[] currVertices)
     {
-        Vector3[] transformedVertices = new Vector3[vertices.Length];
+        Vector3[] projectedVertices = new Vector3[currVertices.Length];
+
+        // Loop through each vertex
+        for (int i = 0; i < currVertices.Length; i++)
+        {
+            Vector3 vertex = currVertices[i];
+            
+            float distanceToPlane = fixedZ - vertex.z;
+
+            // Calculate the perspective factor (scaling by distance to the camera)
+            float scaleFactor = 1.0f / Mathf.Max(1e-5f, Mathf.Abs(distanceToPlane)); // Avoid division by zero
+
+            // Apply the perspective projection
+            float projectedX = vertex.x * scaleFactor;
+            float projectedY = vertex.y * scaleFactor;
+
+            // The Z is now fixed to the target Z-plane
+            projectedVertices[i] = new Vector3(projectedX, projectedY, 0);
+            print(projectedVertices[i]);
+        }
+
+        return projectedVertices;
+    }
+    
+    Vector3[] ProjectVerticesTo2DAlgorithm2(Vector3[] currVertices)
+    {
+        Vector3[] projectedVerticies = new Vector3[currVertices.Length];
 
         // Matrix for orthographic projection onto the XY-plane
         Matrix4x4 projectionMatrix = Matrix4x4.identity;
         projectionMatrix.m22 = 0f; // Set Z value to zero (flatten the Z axis)
 
         // Apply the matrix transformation to each vertex
-        for (int i = 0; i < vertices.Length; i++)
+        for (int i = 0; i < currVertices.Length; i++)
         {
-            transformedVertices[i] = projectionMatrix.MultiplyPoint3x4(vertices[i]);
+            projectedVerticies[i] = projectionMatrix.MultiplyPoint3x4(currVertices[i]);
         }
 
-        return transformedVertices;
+        return projectedVerticies;
     }
     
     Mesh Create2DMesh(Vector3[] vertices, int[] triangles)
@@ -96,5 +127,19 @@ public class ObjectProjection : MonoBehaviour
         newMesh.RecalculateBounds();
 
         return newMesh;
+    }
+    
+    void AddPolygonColliderFromProjectedVertices(Vector3[] projectedVertices,PolygonCollider2D polyCollider)
+    {
+        // Convert the 3D vertices (projected onto a 2D plane) to 2D vertices
+        Vector2[] points2D = new Vector2[projectedVertices.Length];
+        for (int i = 0; i < projectedVertices.Length; i++)
+        {
+            // Use X and Y coordinates, ignoring Z (since it's projected)
+            points2D[i] = new Vector2(projectedVertices[i].x, projectedVertices[i].y);
+        }
+
+        // Set the vertices of the PolygonCollider2D
+        polyCollider.SetPath(0, points2D); // Set the points as the path of the collider
     }
 }

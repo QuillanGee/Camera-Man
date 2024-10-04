@@ -47,6 +47,7 @@
   <ItemGroup>
      <Compile Include="Assets/Scripts/FirstPersonCharacterMovement.cs" />
      <Compile Include="Assets/Scripts/TwoDCharacterMovement.cs" />
+     <Compile Include="Assets/Scripts/InputManager.cs" />
      <Compile Include="Assets/Scripts/PickUpPlaceBlock.cs" />
      <Compile Include="Assets/Scripts/GameManager.cs" />
      <Compile Include="Assets/Scripts/Alan.cs" />
@@ -55,9 +56,14 @@
      <Folder Include="Assets" />
      <Folder Include="Assets/Scenes" />
      <None Include="Assets/Materials/GridShader.shader" />
+     <Folder Include="Assets/PrototypingCharacter/Prefab" />
+     <Folder Include="Assets/Assets" />
      <Folder Include="Assets/Materials" />
+     <Folder Include="Assets/PrototypingCharacter/Sprites" />
+     <Folder Include="Assets/PrototypingCharacter/Animation" />
      <None Include="Assets/Materials/Box.shader" />
      <Folder Include="Assets/Scripts" />
+     <Folder Include="Assets/PrototypingCharacter" />
      <Reference Include="UnityEngine">
      <HintPath>/Applications/Unity/Hub/Editor/2022.3.7f1/Unity.app/Contents/Managed/UnityEngine/UnityEngine.dll</HintPath>
      </Reference>

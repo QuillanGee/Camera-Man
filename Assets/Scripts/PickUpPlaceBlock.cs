@@ -25,8 +25,6 @@ public class PickUpPlaceBlock : MonoBehaviour
                 PickUpBlock();
             }
         }
-
-        // If we are holding a block, move it with the player or camera
     }
 
     // Method to pick up the block
@@ -41,7 +39,7 @@ public class PickUpPlaceBlock : MonoBehaviour
             // If we hit a block, pick it up
             pickedBlock = hit.collider.gameObject;
             pickedBlock.GetComponent<Rigidbody>().isKinematic = true; // Disable physics on the block
-            pickedBlock.GetComponent<Collider>().enabled = false;
+            // pickedBlock.GetComponent<Collider>().enabled = false;
             pickedBlock.transform.SetParent(holdPosition);
             HoldBlock();
         }
@@ -52,7 +50,6 @@ public class PickUpPlaceBlock : MonoBehaviour
     {
         // Move the block to the hold position (e.g., in front of the camera)
         pickedBlock.transform.position = holdPosition.position;
-        print("Hold position: " + holdPosition.position);
         pickedBlock.transform.rotation = holdPosition.rotation;
     }
 
@@ -61,7 +58,7 @@ public class PickUpPlaceBlock : MonoBehaviour
     {
         // Enable physics again for the block
         pickedBlock.GetComponent<Rigidbody>().isKinematic = false;
-        pickedBlock.GetComponent<Collider>().enabled = true;
+        // pickedBlock.GetComponent<Collider>().enabled = true;
         pickedBlock.transform.parent = null;
         pickedBlock = null; // Clear the reference to the block
     }
