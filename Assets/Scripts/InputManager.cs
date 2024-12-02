@@ -79,6 +79,13 @@ public class InputManager : MonoBehaviour
                 //check if holding, if yes, attach to 2D character
                 if (pickUpPlaceBlock.isHolding)
                 {
+                    // Determine the direction the character is facing
+                    float direction = Mathf.Sign(alan2D.transform.localScale.x);
+
+                    // Calculate the new position
+                    Vector3 newPosition = alan2D.transform.position + new Vector3(direction * 0.7f, 1f, 0f);
+                    
+                    objectProjection.PositionBlockToHoldPosition(newPosition);
                     objectProjection.projectedMeshObject.transform.SetParent(alan2D.transform);
                 }
                 currProjected3DObject.SetActive(false);

@@ -19,6 +19,7 @@ public class ObjectProjection : MonoBehaviour
     private Mesh projectedMesh;
     private PolygonCollider2D polygonCollider;
     public Material projectedMaterial;
+    public LayerMask groundLayer;
     
     //What z to project onto
     [SerializeField] Transform projectedWallTransform;
@@ -271,5 +272,10 @@ private class PolarAngleComparer : IComparer<Vector2>
         }
 
         return projectedVertices;
+    }
+
+    public void PositionBlockToHoldPosition(Vector3 holdPosition)
+    {
+        projectedMeshObject.transform.position = holdPosition;
     }
 }
