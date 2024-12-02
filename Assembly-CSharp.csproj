@@ -46,24 +46,44 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets/Scripts/FirstPersonCharacterMovement.cs" />
+     <Compile Include="Assets/Scripts/Alan2D.cs" />
      <Compile Include="Assets/Scripts/TwoDCharacterMovement.cs" />
      <Compile Include="Assets/Scripts/InputManager.cs" />
      <Compile Include="Assets/Scripts/PickUpPlaceBlock.cs" />
      <Compile Include="Assets/Scripts/GameManager.cs" />
+     <Compile Include="Assets/Materials/Outline Materials/Scripts/Outline.cs" />
      <Compile Include="Assets/Scripts/Alan.cs" />
      <Compile Include="Assets/Scripts/ObjectProjection.cs" />
      <Compile Include="Assets/Scripts/CameraController.cs" />
      <Folder Include="Assets" />
+     <Folder Include="Assets/Materials/Outline Materials/Resources" />
+     <Folder Include="Assets/Materials/Outline Materials/Resources/Materials" />
      <Folder Include="Assets/Scenes" />
+     <Folder Include="Assets/Assets/3D Blocks" />
      <None Include="Assets/Materials/GridShader.shader" />
-     <Folder Include="Assets/PrototypingCharacter/Prefab" />
+     <Folder Include="Assets/Materials/Outline Materials/Samples" />
+     <None Include="Assets/Materials/Outline Materials/Resources/Shaders/OutlineMask.shader" />
+     <Folder Include="Assets/Assets/2D Alan/Prefab" />
      <Folder Include="Assets/Assets" />
+     <Folder Include="Assets/Assets/Camera" />
      <Folder Include="Assets/Materials" />
-     <Folder Include="Assets/PrototypingCharacter/Sprites" />
-     <Folder Include="Assets/PrototypingCharacter/Animation" />
-     <None Include="Assets/Materials/Box.shader" />
+     <Folder Include="Assets/Assets/Door Texture Pack/Textures" />
+     <Folder Include="Assets/Assets/2D Alan/Sprites" />
+     <None Include="Assets/Assets/Door Texture Pack/Readme.txt" />
+     <Folder Include="Assets/Materials/Outline Materials/Samples/Scenes" />
+     <None Include="Assets/Materials/Outline Materials/Readme.txt" />
+     <Folder Include="Assets/Assets/2D Alan/Animation" />
+     <Folder Include="Assets/Assets/3D Alan" />
+     <Folder Include="Assets/Materials/Outline Materials/Resources/Shaders" />
+     <Folder Include="Assets/Prefabs" />
+     <Folder Include="Assets/Materials/Outline Materials/Samples/Materials" />
+     <Folder Include="Assets/Assets/Door Texture Pack/Materials" />
      <Folder Include="Assets/Scripts" />
-     <Folder Include="Assets/PrototypingCharacter" />
+     <Folder Include="Assets/Materials/Outline Materials" />
+     <Folder Include="Assets/Materials/Outline Materials/Scripts" />
+     <Folder Include="Assets/Assets/2D Alan" />
+     <None Include="Assets/Materials/Outline Materials/Resources/Shaders/OutlineFill.shader" />
+     <Folder Include="Assets/Assets/Door Texture Pack" />
      <Reference Include="UnityEngine">
      <HintPath>/Applications/Unity/Hub/Editor/2022.3.7f1/Unity.app/Contents/Managed/UnityEngine/UnityEngine.dll</HintPath>
      </Reference>

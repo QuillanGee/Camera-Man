@@ -1,67 +1,103 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;  // Need this for scene management
 
 public class TwoDCharacterMovement : MonoBehaviour {
 
-    public float speed = 1f;
-    public float JumpHeight;
-    public bool InAir = false;
-    private Animator animator;
+    public float speed = 3f;
+    private float JumpHeight = 5f;
+    private bool isGrounded = true;
+    [SerializeField] private Transform groundCheckPosition;
+    public LayerMask groundLayer;
+    
 
     private Rigidbody2D rb;
     
+    private Animator animator;
     private bool facingRight = false;
+    
+    private float coyoteTime = 0.2f;
+    private float coyoteTimeCounter;
+    
+    private float jumpBufferTime = 0.2f;
+    private float jumpBufferCounter;
 
     void Start() {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponentInChildren<Animator>();
     }
-    private void OnCollisionEnter2D(Collision2D collision)
+    
+    private void OnTriggerStay2D(Collider2D other)
     {
-        InAir = false;
-        // Debug.Log("InAir false");
-    }
-    private void OnCollisionExit2D(Collision2D collision)
-    {
-        InAir = true;
-        // Debug.Log("InAir True");
+        if (other.gameObject.CompareTag("Door"))
+        {
+            //to make sure rb doesn't go to sleep when character is staying still
+            rb.WakeUp();
+            if (Input.GetKeyDown(KeyCode.W))
+            {
+                SceneManager.LoadScene(1);  // Loads scene at build index 1
+            }
+        }
     }
 
     void Update() {
         float moveHorizontal = Input.GetAxis("Horizontal");
         rb.velocity = new Vector2(moveHorizontal * -speed, rb.velocity.y);
-
-        // Check if the player is moving right and is not already facing right
-        if (moveHorizontal > 0 && !facingRight)
-        {
-            // Walk right
-            Flip();  // Flip the character to face right
-        }
-        // Check if the player is moving left and is not already facing left
-        else if (moveHorizontal < 0 && facingRight)
-        {
-            // Walk left
-            Flip();  // Flip the character to face left
-        }
-
+        
+        isGrounded = Physics2D.OverlapPoint(groundCheckPosition.position, groundLayer);
 
         // Set animation move state (you can adjust this for different animations)
         if (moveHorizontal != 0)
         {
             animator.SetInteger("moveState", 1);  // Walking animation
+            // Check if the player is moving right and is not already facing right
+            if (moveHorizontal > 0 && !facingRight)
+            {
+                // Walk right
+                Flip();  // Flip the character to face right
+            }
+            // Check if the player is moving left and is not already facing left
+            else if (moveHorizontal < 0 && facingRight)
+            {
+                // Walk left
+                Flip();  // Flip the character to face left
+            }
         }
         else
         {
             animator.SetInteger("moveState", 0);  // Idle animation
         }
         
-        if (Input.GetKeyDown(KeyCode.Space)) {
-            if (InAir == false)
-            {
-                print("jumped");
-                rb.AddForce(new Vector2(0, JumpHeight), ForceMode2D.Impulse);
-            }
+        if (coyoteTimeCounter > 0f && jumpBufferCounter > 0f) 
+        {
+            rb.velocity = new Vector2(rb.velocity.x, JumpHeight);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space) && rb.velocity.y > 0f)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
+            coyoteTimeCounter = 0f;
+        }
+
+        //allows us to press jump before hitting the ground
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            jumpBufferCounter = jumpBufferTime;
+        }
+        else
+        {
+            jumpBufferCounter -= Time.deltaTime;
+        }
+        
+        //allows us to press jump after leaving the groud
+        if (isGrounded)
+        {
+            coyoteTimeCounter = coyoteTime;
+        }
+        else
+        {
+            coyoteTimeCounter -= Time.deltaTime;
         }
     }
     void Flip()

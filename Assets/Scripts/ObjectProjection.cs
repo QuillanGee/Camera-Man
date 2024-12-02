@@ -10,22 +10,23 @@ public class ObjectProjection : MonoBehaviour
     private MeshFilter meshFilter;
     private Mesh mesh;
     private Vector3[] vertices;
-    private BoxCollider boxCollider;
+    private Bounds bounds;
+    private Vector3 boundsCenter;
     private MeshRenderer meshRenderer;
 
     //for spawning new mesh
-    private GameObject projectedMeshObject;
+    public GameObject projectedMeshObject;
     private Mesh projectedMesh;
     private PolygonCollider2D polygonCollider;
     public Material projectedMaterial;
-
-    private float fixedZ = 3.25f;
+    
+    //What z to project onto
+    [SerializeField] Transform projectedWallTransform;
 
     void Awake()
     {
         // Get the Mesh Filter attached to this GameObject
         meshFilter = GetComponent<MeshFilter>();
-        boxCollider = GetComponent<BoxCollider>();
         meshRenderer = GetComponent<MeshRenderer>();
     }
 
@@ -35,6 +36,9 @@ public class ObjectProjection : MonoBehaviour
         {
             mesh = meshFilter.mesh;
             vertices = mesh.vertices;   
+            bounds = mesh.bounds;
+            boundsCenter = bounds.center;
+            print("Initial Bounds Center: "+ boundsCenter);
             // Convert local verticies to world
             for (int i = 0; i < vertices.Length; i++)
             {
@@ -51,18 +55,39 @@ public class ObjectProjection : MonoBehaviour
     public void UpdatePerception()
     {
         GetMeshData();
-        Vector3[] projectedVerticies = ProjectVerticesTo2D(vertices);
+        
+        // CALC PROJECTION
+        Vector3[] projectedVerticies = ProjectVerticesTo2DAlgorithm(vertices);
+        
+        //calculate center (used for moving it to origin and back)
+        Vector3 centerOfProjection = AverageVector3Array(projectedVerticies);
+        
+        //MOVE CALCULATE PROJECTION TO ORIGIN (used for getting the gameObject anchor centered with the mesh)
+        Vector3[] projectedVerticesAroundOrigin = TransformVerticesAroundOrigin(centerOfProjection, projectedVerticies);
         
         // Check if currMesh is null, if not destory currMesh (gameobject)
         DestoryProjectedMesh();
+        
+        //Create GameObject, create Mesh around Origin
         projectedMeshObject = new GameObject("ProjectedMesh");
+        projectedMeshObject.layer = 9;
+        projectedMesh = Create2DMesh(projectedVerticesAroundOrigin, mesh.triangles);
         
-        projectedMesh = Create2DMesh(projectedVerticies, mesh.triangles);
+        //for collider
         polygonCollider = projectedMeshObject.AddComponent<PolygonCollider2D>();
-        AddPolygonColliderFromProjectedVertices(projectedVerticies,polygonCollider);
-        
+        AddPolygonColliderFromProjectedVertices(projectedVerticesAroundOrigin,polygonCollider);
         projectedMeshObject.AddComponent<MeshFilter>().mesh = projectedMesh;
         projectedMeshObject.AddComponent<MeshRenderer>().material = projectedMaterial;
+        
+        //Calc Distance from Center of 3D mesh, Scale, transform GameObject back to original position
+        float distanceToPlane = projectedWallTransform.position.z - transform.position.z;
+        float scaleFactor =   2*(1.0f / Mathf.Max(1e-5f, Mathf.Abs(distanceToPlane))); // Avoid division by zero
+
+        //Scale
+        projectedMeshObject.transform.localScale *= scaleFactor;
+        projectedMeshObject.transform.position = centerOfProjection;
+        
+        
     }
 
     public void DestoryProjectedMesh()
@@ -73,33 +98,7 @@ public class ObjectProjection : MonoBehaviour
         }
     }
     
-    Vector3[] ProjectVerticesTo2D(Vector3[] currVertices)
-    {
-        Vector3[] projectedVertices = new Vector3[currVertices.Length];
-
-        // Loop through each vertex
-        for (int i = 0; i < currVertices.Length; i++)
-        {
-            Vector3 vertex = currVertices[i];
-            
-            float distanceToPlane = fixedZ - vertex.z;
-
-            // Calculate the perspective factor (scaling by distance to the camera)
-            float scaleFactor = 1.0f / Mathf.Max(1e-5f, Mathf.Abs(distanceToPlane)); // Avoid division by zero
-
-            // Apply the perspective projection
-            float projectedX = vertex.x * scaleFactor;
-            float projectedY = vertex.y * scaleFactor;
-
-            // The Z is now fixed to the target Z-plane
-            projectedVertices[i] = new Vector3(projectedX, projectedY, 0);
-            print(projectedVertices[i]);
-        }
-
-        return projectedVertices;
-    }
-    
-    Vector3[] ProjectVerticesTo2DAlgorithm2(Vector3[] currVertices)
+    Vector3[] ProjectVerticesTo2DAlgorithm(Vector3[] currVertices)
     {
         Vector3[] projectedVerticies = new Vector3[currVertices.Length];
 
@@ -110,11 +109,13 @@ public class ObjectProjection : MonoBehaviour
         // Apply the matrix transformation to each vertex
         for (int i = 0; i < currVertices.Length; i++)
         {
+            //for orthographic projection
             projectedVerticies[i] = projectionMatrix.MultiplyPoint3x4(currVertices[i]);
         }
 
         return projectedVerticies;
     }
+    
     
     Mesh Create2DMesh(Vector3[] vertices, int[] triangles)
     {
@@ -129,17 +130,146 @@ public class ObjectProjection : MonoBehaviour
         return newMesh;
     }
     
-    void AddPolygonColliderFromProjectedVertices(Vector3[] projectedVertices,PolygonCollider2D polyCollider)
+    void AddPolygonColliderFromProjectedVertices(Vector3[] projectedVertices, PolygonCollider2D polyCollider)
+{
+    // Convert to Vector2 array first
+    Vector2[] points2D = new Vector2[projectedVertices.Length];
+    for (int i = 0; i < projectedVertices.Length; i++)
     {
-        // Convert the 3D vertices (projected onto a 2D plane) to 2D vertices
-        Vector2[] points2D = new Vector2[projectedVertices.Length];
-        for (int i = 0; i < projectedVertices.Length; i++)
+        points2D[i] = new Vector2(projectedVertices[i].x, projectedVertices[i].y);
+    }
+
+    // Get the convex hull of the points
+    Vector2[] convexHull = ComputeConvexHull(points2D);
+
+    // Set the convex hull points as the collider path
+    polyCollider.SetPath(0, convexHull);
+}
+
+// Graham Scan algorithm to compute convex hull
+private Vector2[] ComputeConvexHull(Vector2[] points)
+{
+    if (points.Length < 3) return points;
+
+    // Find point with lowest y-coordinate (and leftmost if tied)
+    int lowestPoint = 0;
+    for (int i = 1; i < points.Length; i++)
+    {
+        if (points[i].y < points[lowestPoint].y ||
+            (points[i].y == points[lowestPoint].y && points[i].x < points[lowestPoint].x))
         {
-            // Use X and Y coordinates, ignoring Z (since it's projected)
-            points2D[i] = new Vector2(projectedVertices[i].x, projectedVertices[i].y);
+            lowestPoint = i;
+        }
+    }
+
+    // Swap the lowest point to be first in array
+    Vector2 temp = points[0];
+    points[0] = points[lowestPoint];
+    points[lowestPoint] = temp;
+
+    // Sort points by polar angle with respect to base point
+    Vector2 basePoint = points[0];
+    System.Array.Sort(points, 1, points.Length - 1, new PolarAngleComparer(basePoint));
+
+    // Build convex hull
+    List<Vector2> hull = new List<Vector2>();
+    hull.Add(points[0]);
+    hull.Add(points[1]);
+
+    for (int i = 2; i < points.Length; i++)
+    {
+        while (hull.Count >= 2 && !IsLeftTurn(hull[hull.Count - 2], hull[hull.Count - 1], points[i]))
+        {
+            hull.RemoveAt(hull.Count - 1);
+        }
+        hull.Add(points[i]);
+    }
+
+    return hull.ToArray();
+}
+
+private class PolarAngleComparer : IComparer<Vector2>
+{
+    private Vector2 basePoint;
+
+    public PolarAngleComparer(Vector2 basePoint)
+    {
+        this.basePoint = basePoint;
+    }
+
+    public int Compare(Vector2 a, Vector2 b)
+    {
+        float angleA = Mathf.Atan2(a.y - basePoint.y, a.x - basePoint.x);
+        float angleB = Mathf.Atan2(b.y - basePoint.y, b.x - basePoint.x);
+        
+        if (angleA < angleB) return -1;
+        if (angleA > angleB) return 1;
+        
+        // If angles are equal, put closer point first
+        float distA = Vector2.SqrMagnitude(a - basePoint);
+        float distB = Vector2.SqrMagnitude(b - basePoint);
+        return distA.CompareTo(distB);
+    }
+}
+
+    private bool IsLeftTurn(Vector2 a, Vector2 b, Vector2 c)
+    {
+        return ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) > 0;
+    }
+    
+    private static Vector3 AverageVector3Array(Vector3[] vectors)
+    {
+        if (vectors == null || vectors.Length == 0)
+        {
+            return Vector3.zero; // Return zero vector if the input array is null or empty
         }
 
-        // Set the vertices of the PolygonCollider2D
-        polyCollider.SetPath(0, points2D); // Set the points as the path of the collider
+        Vector3 sum = Vector3.zero;
+
+        // Sum all vectors
+        for (int i = 0; i < vectors.Length; i++)
+        {
+            sum += vectors[i];
+        }
+
+        // Calculate the average
+        Vector3 average = sum / vectors.Length;
+        return average;
+    }
+    
+    private Vector3[] TransformVerticesAroundOrigin(Vector3 distFromOrigin, Vector3[] vertices)
+    {
+        Vector3[] transformedVertices = new Vector3[vertices.Length];
+
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            transformedVertices[i] = vertices[i] - distFromOrigin;
+        }
+
+        return transformedVertices;
+    }
+    
+    Vector3[] ProjectVerticesTo2D(Vector3[] currVertices)
+    {
+        Vector3[] projectedVertices = new Vector3[currVertices.Length];
+
+        // Loop through each vertex
+        for (int i = 0; i < currVertices.Length; i++)
+        {
+            Vector3 vertex = currVertices[i];
+            float distanceToPlane = projectedWallTransform.position.z - vertex.z;
+
+            // Calculate the perspective factor (scaling by distance to the camera)
+            float scaleFactor = (1.0f / Mathf.Max(1e-5f, Mathf.Abs(distanceToPlane))) * 10; // Avoid division by zero
+            
+            // Apply the perspective projection
+            float projectedX = vertex.x * scaleFactor;
+            float projectedY = vertex.y * scaleFactor;
+
+            // The Z is now fixed to the target Z-plane
+            projectedVertices[i] = new Vector3(projectedX, projectedY, 0);
+        }
+
+        return projectedVertices;
     }
 }

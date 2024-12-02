@@ -4,9 +4,10 @@ public class PickUpPlaceBlock : MonoBehaviour
 {
     public Camera playerCamera; // Reference to the camera
     public LayerMask blockLayer; // Layer that defines which objects can be picked up
-    public float pickupDistance = 5f; // Maximum distance to pick up objects
+    public float pickupDistance = 2f; // Maximum distance to pick up objects
     public Transform holdPosition; // Where the block will be held when picked up
-
+    public bool isHolding = false;
+    
     private GameObject pickedBlock = null; // The currently picked-up block
 
     void Update()
@@ -38,8 +39,9 @@ public class PickUpPlaceBlock : MonoBehaviour
         {
             // If we hit a block, pick it up
             pickedBlock = hit.collider.gameObject;
-            pickedBlock.GetComponent<Rigidbody>().isKinematic = true; // Disable physics on the block
-            // pickedBlock.GetComponent<Collider>().enabled = false;
+            isHolding = true;
+            // pickedBlock.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezePosition | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ;
+            pickedBlock.GetComponent<Rigidbody>().isKinematic = true;
             pickedBlock.transform.SetParent(holdPosition);
             HoldBlock();
         }
@@ -56,9 +58,10 @@ public class PickUpPlaceBlock : MonoBehaviour
     // Method to place the block
     void PlaceBlock()
     {
+        isHolding = false;
         // Enable physics again for the block
+        // pickedBlock.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.None;;
         pickedBlock.GetComponent<Rigidbody>().isKinematic = false;
-        // pickedBlock.GetComponent<Collider>().enabled = true;
         pickedBlock.transform.parent = null;
         pickedBlock = null; // Clear the reference to the block
     }
